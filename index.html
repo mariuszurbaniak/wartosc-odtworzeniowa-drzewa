@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalkulator Wartości Odtworzeniowej Drzewa | Metoda IGPiM / SGGW</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Nagłówek ekranowy -->
+    <header class="screen-header">
+      <div class="header-title">
+        <h1>Wycena Wartości Odtworzeniowej Drzewa</h1>
+        <p>Metoda IGPiM / SGGW prof. H. B. Szczepanowskiej (podrozdział 3.4.1)</p>
+      </div>
+      <div class="header-badge">
+        Waloryzacja stawek 2020 r.
+      </div>
+    </header>
+
+    <!-- Nagłówek wydruku (Arkusz wyceny) -->
+    <div class="print-header print-only">
+      <div class="print-header-left">
+        <h2>KARTA WYCENY WARTOŚCI ODTWORZENIOWEJ DRZEWA</h2>
+        <p>Metoda IGPiM / SGGW (Suchocka & Jarska, waloryzacja stawek na 2020 r.)</p>
+      </div>
+      <div class="print-header-right">
+        <div>Data wyceny: <strong id="printCurrentDate">11.09.2026 r.</strong></div>
+        <div style="font-size: 8pt; color: #555;">Arkusz inwentaryzacyjno-wycenowy</div>
+      </div>
+    </div>
+
+    <form id="valuationForm" onsubmit="event.preventDefault();">
+      <div class="main-grid">
+
+        <!-- KARTA 1: Identyfikacja i parametry dendrometryczne -->
+        <div class="card">
+          <div class="card-title">
+            <span>1. Dane drzewa i lokalizacja</span>
+            <span class="badge">Dendrometria</span>
+          </div>
+
+          <!-- Gatunek z autouzupełnianiem -->
+          <div class="form-group autocomplete-wrapper">
+            <label for="speciesSearch">Gatunek drzewa:</label>
+            <div class="input-with-button">
+              <input type="text" id="speciesSearch" placeholder="np. Dąb szypułkowy, Klon, Quercus..." autocomplete="off">
+              <button type="button" class="btn-browse" id="btnBrowseSpecies" title="Rozwiń pełną listę gatunków">▼ Lista</button>
+            </div>
+            <div class="print-val" id="printSpeciesSearch">—</div>
+            <div id="autocompleteList" class="autocomplete-dropdown"></div>
+            <div class="help-text">Wpisz nazwę (np. "dab", "lipa") lub kliknij „▼ Lista”, aby wybrać z bazy.</div>
+          </div>
+
+          <!-- Nazwa łacińska -->
+          <div class="form-group">
+            <label for="latinName">Nazwa łacińska:</label>
+            <input type="text" id="latinName" placeholder="Automatycznie uzupełniana z bazy" readonly>
+            <div class="print-val" id="printLatinName">—</div>
+          </div>
+
+          <!-- Adres / Lokalizacja drzewa -->
+          <div class="form-group">
+            <label for="treeAddress">Adres / lokalizacja drzewa:</label>
+            <input type="text" id="treeAddress" placeholder="np. Warszawa, ul. Marszałkowska, Park Świętokrzyski, dz. 45/2">
+            <div class="print-val" id="printTreeAddress">—</div>
+          </div>
+
+          <!-- Wymiary: obwód i wysokość -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="trunkCircumference">Obwód pnia na wys. 130 cm [cm]:</label>
+              <input type="number" id="trunkCircumference" min="1" max="1500" step="0.5" placeholder="np. 120" required>
+              <div class="print-val" id="printTrunkCircumference">—</div>
+            </div>
+            <div class="form-group">
+              <label for="treeHeight">Wysokość drzewa [m]:</label>
+              <input type="number" id="treeHeight" min="0.5" max="80" step="0.5" placeholder="np. 18">
+              <div class="print-val" id="printTreeHeight">—</div>
+            </div>
+          </div>
+
+          <!-- Informacja o tempie wzrostu -->
+          <div class="form-group" style="margin-top: 6px;">
+            <label>Grupa tempa wzrostu (Tabela 2):</label>
+            <div id="growthGroupBadge" class="info-pill">Nie wybrano gatunku (domyślnie: Grupa 2)</div>
+            <div class="print-val" id="printGrowthGroup">—</div>
+          </div>
+        </div>
+
+        <!-- KARTA 2: Wartości bazowe i współczynniki -->
+        <div class="card">
+          <div class="card-title">
+            <span>2. Współczynniki wyceny</span>
+            <span class="badge">Tabele 2, 3, 4, 5, 5a</span>
+          </div>
+
+          <!-- Wartość początkowa / podstawowa (WP) -->
+          <div class="form-group">
+            <label for="baseValue">Wartość początkowa drzewa (WP) [zł] – Tabela 2:</label>
+            <input type="number" id="baseValue" step="0.01" min="0" placeholder="np. 2225.00">
+            <div class="print-val" id="printBaseValue">—</div>
+            <div class="help-text">Wartość wypełniana automatycznie na podstawie gatunku z możliwością ręcznej modyfikacji.</div>
+          </div>
+
+          <!-- Tabela 3: Współczynnik kondycji (K) -->
+          <div class="form-group">
+            <label for="conditionSelect">Współczynnik kondycji (K) – Tabela 3:</label>
+            <select id="conditionSelect"></select>
+            <div class="print-val" id="printCondition">—</div>
+            <div class="help-text">Określany na podstawie procentowego ubytku korony.</div>
+          </div>
+
+          <!-- Tabela 4: Współczynnik lokalizacji (L) -->
+          <div class="form-group">
+            <label for="locationSelect">Współczynnik lokalizacji (L) – Tabela 4:</label>
+            <select id="locationSelect"></select>
+            <div class="print-val" id="printLocation">—</div>
+            <div class="help-text">Nagłówki lokalizacji wg metody IGPiM / SGGW.</div>
+          </div>
+
+          <!-- Tabela 5 i 5a: Współczynniki wyliczane automatycznie -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pFactorInput">Współczynnik przyrostu (P) – Tab. 5:</label>
+              <input type="number" id="pFactorInput" step="0.1" readonly>
+              <div class="print-val" id="printPFactor">—</div>
+              <div class="help-text" id="pBracketInfo">Przedział obwodu: -</div>
+            </div>
+
+            <div class="form-group">
+              <label for="gFactorSelect">Współczynnik gatunkowy (G) – Tab. 5a:</label>
+              <select id="gFactorSelect">
+                <option value="1.3">1,3 – Bardzo duża wartość dendrologiczna</option>
+                <option value="1.1">1,1 – Duża wartość dendrologiczna</option>
+                <option value="1.0">1,0 – Przeciętna wartość dendrologiczna</option>
+                <option value="0.9">0,9 – Przeciętna wartość / wysoka adaptacja</option>
+              </select>
+              <div class="print-val" id="printGFactor">—</div>
+              <div class="help-text" id="gCategoryInfo">Ustalany automatycznie z gatunku.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- KARTA 3: Wartość rzeczywista (WR) -->
+        <div class="card results-card">
+          <div class="card-title">
+            <span>3. Wyliczona Wartość Rzeczywista Drzewa (WR)</span>
+            <span class="badge">Wynik końcowy</span>
+          </div>
+
+          <div class="results-banner">
+            <div>
+              <div class="title">Wartość rzeczywista (WR):</div>
+              <div class="help-text">Odtworzeniowa wartość drzewa uwzględniająca przyrost, gatunek, kondycję i lokalizację</div>
+            </div>
+            <div class="value-large" id="realValueResult">0,00 zł</div>
+          </div>
+
+          <div class="formula-box">
+            <strong id="formulaType">WR = WP × P × G × K × L</strong><br>
+            <span id="formulaCalculation">Wprowadź obwód pnia oraz parametry, aby przeliczyć wartość.</span>
+            <span class="comment" id="formulaExplanation">Dla obwodu pnia do 18 cm: WR = WP × G × K × L | Dla obwodu powyżej 18 cm: WR = WP × P × G × K × L</span>
+          </div>
+
+          <div class="params-grid">
+            <div class="param-box">
+              <div class="lbl">Stawka WP</div>
+              <div class="val" id="summaryWp">0,00 zł</div>
+              <div class="sub">Tabela 2</div>
+            </div>
+            <div class="param-box">
+              <div class="lbl">Wsp. Przyrostu (P)</div>
+              <div class="val" id="summaryP">1,0</div>
+              <div class="sub">Tabela 5</div>
+            </div>
+            <div class="param-box">
+              <div class="lbl">Wsp. Gatunkowy (G)</div>
+              <div class="val" id="summaryG">1,0</div>
+              <div class="sub">Tabela 5a</div>
+            </div>
+            <div class="param-box">
+              <div class="lbl">Wsp. Kondycji (K)</div>
+              <div class="val" id="summaryK">1,0</div>
+              <div class="sub">Tabela 3</div>
+            </div>
+            <div class="param-box">
+              <div class="lbl">Wsp. Lokalizacji (L)</div>
+              <div class="val" id="summaryL">1,0</div>
+              <div class="sub">Tabela 4</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KARTA 4: Współczynniki uszkodzenia drzewa (Tabela 6) -->
+        <div class="card damage-card">
+          <div class="card-title">
+            <span>4. Współczynniki uszkodzenia drzewa i wycena szkody (Tabela 6)</span>
+            <span class="badge">Szkody nagłe / plac budowy</span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;" class="screen-only-text">
+            Zastosowanie w sytuacji nagłego zdarzenia (np. uszkodzenie korony, pnia lub korzeni na placu budowy). Tabela wskazuje stopień utraty wartości w zależności od % uszkodzonych tkanek.
+          </p>
+
+          <div class="table-responsive">
+            <table class="table-damage">
+              <thead>
+                <tr>
+                  <th style="width: 22%;">Badana część drzewa</th>
+                  <th style="width: 46%;">Zakres uszkodzenia / ubytku (Tabela 6)</th>
+                  <th style="width: 14%;">Wskaźnik</th>
+                  <th style="width: 18%;">Wartość uszkodzenia</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Korona -->
+                <tr>
+                  <td>
+                    <strong>Korona drzewa</strong><br>
+                    <span style="font-size: 0.78rem; color: var(--text-muted);">Straty objętości w częściach trwałych [%]</span>
+                  </td>
+                  <td>
+                    <select id="crownDamageSelect" class="screen-select"></select>
+                    <div class="print-val damage-print-val" id="printCrownDamage">Brak uszkodzeń (0%)</div>
+                    <div class="screen-selected-desc" id="crownSelectedDesc"></div>
+                  </td>
+                  <td id="crownFactorVal" style="font-weight: 600;">0,00</td>
+                  <td id="crownLossVal" style="font-weight: 700; color: var(--danger);">0,00 zł</td>
+                </tr>
+
+                <!-- Pień -->
+                <tr>
+                  <td>
+                    <strong>Pień drzewa (UP)</strong><br>
+                    <span style="font-size: 0.78rem; color: var(--text-muted);">Ubytek poprzeczny obwodu [%]</span>
+                  </td>
+                  <td>
+                    <select id="trunkDamageSelect" class="screen-select"></select>
+                    <div class="print-val damage-print-val" id="printTrunkDamage">Brak uszkodzeń (0%)</div>
+                    <div class="screen-selected-desc" id="trunkSelectedDesc"></div>
+                  </td>
+                  <td id="trunkFactorVal" style="font-weight: 600;">0,00</td>
+                  <td id="trunkLossVal" style="font-weight: 700; color: var(--danger);">0,00 zł</td>
+                </tr>
+
+                <!-- System korzeniowy -->
+                <tr>
+                  <td>
+                    <strong>System korzeniowy (USK)</strong><br>
+                    <span style="font-size: 0.78rem; color: var(--text-muted);">Ubytek powierzchni rzutu [%]</span>
+                  </td>
+                  <td>
+                    <select id="rootsDamageSelect" class="screen-select"></select>
+                    <div class="print-val damage-print-val" id="printRootsDamage">Brak uszkodzeń (0%)</div>
+                    <div class="screen-selected-desc" id="rootsSelectedDesc"></div>
+                  </td>
+                  <td id="rootsFactorVal" style="font-weight: 600;">0,00</td>
+                  <td id="rootsLossVal" style="font-weight: 700; color: var(--danger);">0,00 zł</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Podsumowanie uszkodzeń -->
+          <div class="damage-summary-grid">
+            <div class="damage-summary-box" id="scIndicatorBox">
+              <div class="ds-label">Kwalifikacja szkody</div>
+              <div class="ds-value" id="qualificationValue">Szkoda częściowa</div>
+            </div>
+
+            <div class="damage-summary-box">
+              <div class="ds-label">Łączny wskaźnik utraty wartości</div>
+              <div class="ds-value" id="totalDamageFactor">0,0%</div>
+            </div>
+
+            <div class="damage-summary-box">
+              <div class="ds-label">Łączna wartość uszkodzenia (odszkodowanie)</div>
+              <div class="ds-value" id="totalDamageLoss" style="color: var(--danger);">0,00 zł</div>
+            </div>
+
+            <div class="damage-summary-box">
+              <div class="ds-label">Wartość drzewa po uszkodzeniu</div>
+              <div class="ds-value" id="valueAfterDamage" style="color: var(--primary-dark);">0,00 zł</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- KARTA 5: Dokumentacja fotograficzna (ekranowa) -->
+        <div class="card photo-card screen-only-block" id="photoScreenCard">
+          <div class="card-title">
+            <span>5. Dokumentacja fotograficzna</span>
+            <span class="badge">Załącznik do raportu</span>
+          </div>
+
+          <div class="photo-upload-zone" id="photoDropZone">
+            <input type="file" id="photoFileInput" multiple accept="image/*" style="display: none;">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">
+              <strong>Przeciągnij i upuść zdjęcia</strong> lub <button type="button" class="btn-browse-photos" id="btnBrowsePhotos">wybierz z dysku</button>
+            </div>
+            <div class="upload-hint">Możesz dodać wiele zdjęć (JPG, PNG, WEBP). Zdjęcia są automatycznie numerowane (Fot. 1, Fot. 2...) i drukowane na drugiej stronie raportu.</div>
+          </div>
+
+          <!-- Lista wgranych zdjęć na ekranie z miniaturami i polami na podpis -->
+          <div id="screenPhotoList" class="screen-photo-list"></div>
+        </div>
+
+      </div>
+
+      <!-- DOKUMENTACJA FOTOGRAFICZNA NA WYDRUKU (DRUGA STRONA RAPORTU) -->
+      <div id="printPhotosSection" class="print-photos-section">
+        <div class="print-photos-header">
+          <div class="print-header-left">
+            <h2>DOKUMENTACJA FOTOGRAFICZNA</h2>
+            <p>Załącznik fotograficzny do Karty Wyceny Wartości Odtworzeniowej Drzewa</p>
+          </div>
+          <div class="print-header-right">
+            <div id="printPhotoTreeInfo"><strong>—</strong></div>
+            <div style="font-size: 8pt; color: #555;">Załącznik do wyceny</div>
+          </div>
+        </div>
+        <div id="printPhotoGrid" class="print-photo-grid"></div>
+      </div>
+
+      <!-- Pasek akcji ekranowych -->
+      <div class="actions-bar">
+        <button type="button" class="btn btn-primary" onclick="window.print();">
+          🖨️ Drukuj / Zapisz raport PDF
+        </button>
+        <button type="button" class="btn btn-outline" id="btnExampleOak">
+          🌳 Wczytaj przykład (Dąb szypułkowy 220 cm)
+        </button>
+        <button type="button" class="btn btn-outline" id="btnResetForm">
+          🔄 Wyczyść formularz
+        </button>
+      </div>
+    </form>
+
+    <!-- Sekcja podglądu tabel referencyjnych (niewidoczna na wydruku) -->
+    <div class="reference-section">
+      <button type="button" class="accordion-toggle" id="btnToggleRef">
+        <span>📖 Tabele referencyjne metody IGPiM/SGGW (Tabela 2, 3, 4, 5, 5a, 6)</span>
+        <span id="refArrow">▼ Rozwiń</span>
+      </button>
+      
+      <div class="accordion-content" id="refContent">
+        <!-- Pasek zakładek -->
+        <div class="ref-tabs">
+          <button type="button" class="ref-tab-btn active" data-tab="tabT2">Tabela 2 (Stawki SP)</button>
+          <button type="button" class="ref-tab-btn" data-tab="tabT3">Tabela 3 (Kondycja K)</button>
+          <button type="button" class="ref-tab-btn" data-tab="tabT4">Tabela 4 (Lokalizacja L)</button>
+          <button type="button" class="ref-tab-btn" data-tab="tabT5">Tabela 5 (Przyrost P)</button>
+          <button type="button" class="ref-tab-btn" data-tab="tabT5a">Tabela 5a (Gatunkowy G)</button>
+          <button type="button" class="ref-tab-btn" data-tab="tabT6">Tabela 6 (Uszkodzenia)</button>
+        </div>
+
+        <!-- Zakładka: Tabela 2 -->
+        <div class="ref-tab-pane active" id="tabT2">
+          <h4>Tabela 2. Stawka podstawowa (SP, w zł) w metodzie IGPiM/SGGW (stawki waloryzowane na rok 2020)</h4>
+          <table class="table-reference">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Grupa wzrostu</th>
+                <th style="width: 15%;">Stawka SP [zł]</th>
+                <th style="width: 60%;">Gatunki przykładowe</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>GRUPA 1:</strong> Gatunki szybko rosnące</td>
+                <td><strong>2 261,50 zł</strong></td>
+                <td>ailant gruczołowaty, kasztanowiec biały, klon jesionolistny, klon srebrzysty, platan klonolistny, topola biała, t. osika, t. kanadyjska, t. czarna, t. berlińska, t. Simona, wierzby drzewiaste</td>
+              </tr>
+              <tr>
+                <td><strong>GRUPA 2:</strong> Gatunki umiarkowanie rosnące</td>
+                <td><strong>2 225,00 zł</strong></td>
+                <td>brzoza brodawkowata, b. omszona, czeremcha pospolita, cz. późna, czereśnia ptasia, daglezja zielona, dąb czerwony, gleditsia trójcierniowa, jesion amerykański, j. wyniosły, j. pensylwański, jodła (poza koreańską), kasztanowiec czerwony, kasztan jadalny, klon pospolity, k. jawor, lipa, metasekwoja chińska, modrzew europejski i japoński, olsza szara i czarna, orzech włoski, robinia akacjowa, sofora chińska, sosna limba, s. czarna, s. żółta, s. wejmutka, s. pospolita, wiąz szypułkowy, w. górski, w. polny, wiśnia pospolita, w. piłkowana, w. różowa, świerk pospolity, ś. serbski, ś. kłujący, żywotnik olbrzymi</td>
+              </tr>
+              <tr>
+                <td><strong>GRUPA 3:</strong> Gatunki wolno rosnące</td>
+                <td><strong>2 396,29 zł</strong></td>
+                <td>ambrowiec balsamiczny, buk pospolity, cypryśnik błotny, choina kanadyjska, dąb szypułkowy, d. bezszypułkowy, grab pospolity, grusza drobnoowocowa, g. wierzbolistna, g. pospolita, jabłoń ozdobna, jarząb pospolity, klon polny, kłęk amerykański, korkowiec amurski, leszczyna turecka, magnolia, miłorząb chiński, morwa biała, orzesznik, surmia, śliwa wiśniowa (ałycza), tulipanowiec amerykański, wiśnia wonna</td>
+              </tr>
+              <tr>
+                <td><strong>GRUPA 4:</strong> Gatunki bardzo wolno rosnące</td>
+                <td><strong>2 441,00 zł</strong></td>
+                <td>cis pospolity, c. pośredni, cyprysik, głóg, jałowiec pospolity, j. wirginijski, jarząb mączny, j. szwedzki, żywotnik zachodni, jodła koreańska</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Zakładka: Tabela 3 -->
+        <div class="ref-tab-pane" id="tabT3">
+          <h4>Tabela 3. Współczynnik kondycji (K) w zależności od ubytku korony</h4>
+          <table class="table-reference">
+            <thead>
+              <tr>
+                <th>Lp.</th>
+                <th>Kondycja drzewa</th>
+                <th>Ubytek korony [%]</th>
+                <th>Współczynnik korekcyjny (K)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1.</td><td>Bardzo dobra</td><td>mniej niż 1%</td><td><strong>1,00</strong></td></tr>
+              <tr><td>2.</td><td>Dobra</td><td>1 - 10%</td><td><strong>0,95</strong></td></tr>
+              <tr><td>3.</td><td>Średnia</td><td>11 - 25%</td><td><strong>0,82</strong></td></tr>
+              <tr><td>4.</td><td>Słaba</td><td>26 - 75%</td><td><strong>0,48</strong></td></tr>
+              <tr><td>5.</td><td>Drzewo zamierające</td><td>76 - 99%</td><td><strong>0,13</strong></td></tr>
+              <tr><td>6.</td><td>Drzewo martwe</td><td>100% posuszu i ubytków korony</td><td><strong>0,00</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Zakładka: Tabela 4 -->
+        <div class="ref-tab-pane" id="tabT4">
+          <h4>Tabela 4. Współczynnik lokalizacji (L) w metodzie IGPiM/SGGW</h4>
+          <table class="table-reference">
+            <thead>
+              <tr>
+                <th>Lokalizacja drzewa</th>
+                <th>Współczynnik lokalizacji (L)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Zadrzewienia miast i wsi</td><td><strong>0,4</strong></td></tr>
+              <tr><td>Tereny zabudowy wiejskiej, ogrody przydomowe miast i wsi</td><td><strong>0,7</strong></td></tr>
+              <tr><td>Parki, zieleńce miast i wsi, tereny osiedlowe</td><td><strong>1,0</strong></td></tr>
+              <tr><td>Drogi i ulice miast i wsi</td><td><strong>1,5</strong></td></tr>
+              <tr><td>Tereny zabytkowe, tereny uzdrowisk i ochrony uzdrowiskowej</td><td><strong>2,0</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Zakładka: Tabela 5 -->
+        <div class="ref-tab-pane" id="tabT5">
+          <h4>Tabela 5. Współczynniki przyrostu (P) w zależności od obwodu pnia i grupy gatunkowej</h4>
+          <div style="max-height: 400px; overflow-y: auto;">
+            <table class="table-reference" id="refTable5">
+              <thead>
+                <tr>
+                  <th>Obwód pnia [cm]</th>
+                  <th>Grupa 1 (szybko)</th>
+                  <th>Grupa 2 (umiark.)</th>
+                  <th>Grupa 3 (wolno)</th>
+                  <th>Grupa 4 (b. wolno)</th>
+                </tr>
+              </thead>
+              <tbody id="refTable5Body">
+                <!-- Wypełniane dynamicznie przez skrypt -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Zakładka: Tabela 5a -->
+        <div class="ref-tab-pane" id="tabT5a">
+          <h4>Tabela 5a. Współczynniki wartości gatunkowej (G) – ocena według zdolności adaptacyjnych i wartości dendrologicznych</h4>
+          <table class="table-reference">
+            <thead>
+              <tr>
+                <th style="width: 25%;">G = 1,3 (B. duża wartość)</th>
+                <th style="width: 25%;">G = 1,1 (Duża wartość)</th>
+                <th style="width: 25%;">G = 1,0 (Przeciętna wartość)</th>
+                <th style="width: 25%;">G = 0,9 (Duża adaptacja)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="vertical-align: top; font-size: 0.8rem;">
+                <td>
+                  Abies alba, Abies koreana, Abies sp., Acer rubrum, Carya sp., Castanea sativa, Catalpa sp., Chamaecyparis sp., Fraxinus americana, Gleditsia triacanthos, Gymnocladus dioica, Juglans sp., Liquidambar styraciflua, Liriodendron tulipifera, Magnolia sp., Malus sp., Metasequoia glyptostroboides, Phellodendron amurense, Pinus ponderosa, Pinus strobus, Sophora japonica, Taxodium distichum, Tsuga canadensis
+                </td>
+                <td>
+                  Abies concolor, Aesculus sp. (poza hippocastanum), Betula sp. (poza pendula i pubescens), Corylus colurna, Crataegus sp., Ginkgo biloba, Juniperus virginiana, Morus alba, Picea omorika, Pinus cembra, Pinus nigra, Prunus serrulata, Prunus subhirtella, Pseudotsuga menziesii, Pyrus calleryana, Pyrus salicifolia, Sorbus aria, Sorbus intermedia, Taxus baccata, Taxus ×media, Thuja plicata
+                </td>
+                <td>
+                  Acer platanoides, Acer pseudoplatanus, Aesculus hippocastanum, Carpinus betulus, Fagus sylvatica, Fraxinus excelsior, Larix decidua, Larix kaempferi, Picea abies, Picea pungens, Pinus sylvestris, Prunus avium, Prunus cerasus, Quercus robur, Quercus petraea, Thuja occidentalis, Tilia sp., Ulmus laevis, Ulmus glabra
+                </td>
+                <td>
+                  Acer campestre, Acer negundo, Acer saccharinum, Ailanthus altissima, Alnus incana, Alnus glutinosa, Betula pendula, Betula pubescens, Elaeagnus angustifolia, Fraxinus pennsylvanica, Juniperus communis, Platanus ×hispanica, Populus alba, P. tremula, P. ×canadensis, P. nigra, P. ×berolinensis, P. simonii, Prunus cerasifera, Prunus mahaleb, Prunus padus, Prunus serotina, Pyrus pyraster, Quercus rubra, Robinia pseudoacacia, Salix sp., Sorbus aucuparia, Tilia tomentosa, Ulmus minor
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Zakładka: Tabela 6 -->
+        <div class="ref-tab-pane" id="tabT6">
+          <h4>Tabela 6. Współczynniki uszkodzenia drzewa w zakresie korony, pnia i systemu korzeniowego</h4>
+          <table class="table-reference">
+            <thead>
+              <tr>
+                <th>Lp.</th>
+                <th>Straty objętości korony [%]</th>
+                <th>Wskaźnik korony</th>
+                <th>Ubytek obwodu pnia (UP) [%]</th>
+                <th>Wskaźnik pnia</th>
+                <th>Ubytek systemu korzeniowego (USK) [%]</th>
+                <th>Wskaźnik korzeni</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1.</td><td>do 20%</td><td>0,20</td><td>do 10%</td><td>0,10</td><td>do 10%</td><td>0,05</td></tr>
+              <tr><td>2.</td><td>do 25%</td><td>0,25</td><td>do 15%</td><td>0,15</td><td>do 15%</td><td>0,10</td></tr>
+              <tr><td>3.</td><td>do 30%</td><td>0,35</td><td>do 20%</td><td>0,20</td><td>do 20%</td><td>0,15</td></tr>
+              <tr><td>4.</td><td>do 35%</td><td>0,50</td><td>do 25%</td><td>0,25</td><td>do 25%</td><td>0,20</td></tr>
+              <tr><td>5.</td><td>do 40%</td><td>0,70</td><td>do 30%</td><td>0,35</td><td>do 30%</td><td>0,40</td></tr>
+              <tr><td>6.</td><td>do 45%</td><td>0,90</td><td>do 35%</td><td>0,50</td><td>do 35%</td><td>0,60</td></tr>
+              <tr><td>7.</td><td>ponad 50%</td><td><strong>SC* (1,00)</strong></td><td>do 40%</td><td>0,70</td><td>do 40%</td><td>0,85</td></tr>
+              <tr><td>8.</td><td>-</td><td>-</td><td>do 45%</td><td>0,90</td><td>powyżej 40%</td><td><strong>SC* (1,00)</strong></td></tr>
+              <tr><td>9.</td><td>-</td><td>-</td><td>ponad 50%</td><td><strong>SC* (1,00)</strong></td><td>-</td><td>-</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+            *SC – Szkoda Całkowita (utrata 100% wartości rzeczywistej drzewa).
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
